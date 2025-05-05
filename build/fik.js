@@ -111,7 +111,7 @@
 			return true;
 		},
 		manhattanDistanceBetween: function (v1, v2) {
-			return Math.abs(v2.x - v1.x) + Math.abs(v2.x - v1.x) + Math.abs(v2.x - v1.x);
+			return Math.abs(v2.x - v1.x) + Math.abs(v2.y - v1.y) + Math.abs(v2.z - v1.z);
 		},
 		distanceBetween: function (v1, v2) {
 			let dx = v2.x - v1.x;

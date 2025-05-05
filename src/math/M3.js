@@ -110,7 +110,6 @@ export class M3 {
 		// Singularity fix
 		if ( Math.abs( referenceDirection.y ) > 0.9999 ){
 
-			
 			yAxis.copy( xAxis ).cross( zAxis ).normalize();
 
 		} else {

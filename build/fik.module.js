@@ -140,7 +140,7 @@ const math = {
 
 	manhattanDistanceBetween: function ( v1, v2 ) {
 
-	    return Math.abs(v2.x - v1.x) + Math.abs(v2.x - v1.x) + Math.abs(v2.x - v1.x);
+	    return Math.abs(v2.x - v1.x) + Math.abs(v2.y - v1.y) + Math.abs(v2.z - v1.z);
 
 	},
 
@@ -874,7 +874,6 @@ class M3 {
 		// Singularity fix
 		if ( Math.abs( referenceDirection.y ) > 0.9999 ){
 
-			
 			yAxis.copy( xAxis ).cross( zAxis ).normalize();
 
 		} else {

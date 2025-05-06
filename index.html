@@ -33,7 +33,7 @@
 <script type="module">
 
     import * as THREE from 'three'
-    import * as TWEEN from 'tween'
+    import {Tween, Easing} from 'tween'
     import * as UIL from 'uil'
 
     import { OrbitControls } from './jsm/controls/OrbitControls.js'
@@ -98,6 +98,8 @@
 		renderer = new THREE.WebGLRenderer( { antialias: true } );
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( w, h );
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.setClearColor( 0x222322, 1 );
@@ -180,7 +182,7 @@
             lights[ 0 ].position.set( 0, 200, 0 );
             controler.update();
 
-            ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200, 1, 1 ),  new THREE.ShadowMaterial({opacity:0.5}) );
+            ground = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200, 1, 1 ),  new THREE.ShadowMaterial({opacity:0.5}) );
             ground.geometry.rotateX( -Math.PI * 0.5 );
             ground.castShadow = false;
             ground.receiveShadow = true;
@@ -197,7 +199,7 @@
             lights[ 0 ].position.set( 40, 100, 200 );
             controler.update();
 
-            ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200, 1, 1 ),  new THREE.ShadowMaterial({opacity:0.5}) );
+            ground = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200, 1, 1 ),  new THREE.ShadowMaterial({opacity:0.5}) );
             //ground.geometry.applyMatrix( new THREE.Matrix4().makeRotationX(-Math.PI*0.5) );
             ground.castShadow = false;
             ground.receiveShadow = true;
@@ -236,7 +238,6 @@
         let n = targets[id];
 
         n.mesh.position.copy( v );
-        n.control.position.copy( v );
         n.position = n.mesh.position;
 
     }
@@ -246,7 +247,7 @@
         //https://threejs.org/examples/?q=Transform#misc_controls_transform
 
         let n = {
-            mesh : new THREE.Mesh( new THREE.SphereBufferGeometry( 0.1, 6, 4 ),  new THREE.MeshStandardMaterial({color:0xFFFF00, wireframe:true }) ),
+            mesh : new THREE.Mesh( new THREE.SphereGeometry( 0.1, 6, 4 ),  new THREE.MeshStandardMaterial({color:0xFFFF00, wireframe:true }) ),
             control : new TransformControls( camera, renderer.domElement ),
         }
 
@@ -259,10 +260,13 @@
         n.control.addEventListener( 'dragging-changed', orbitalMove );
 
         n.control.attach( n.mesh );
-        n.control.setSize(0.75);
+        n.control.setSize(0.5);
         //n.control.setMode('rotate')
         //n.control.setMode('scale')
-        scene.add( n.control );
+        //scene.add( n.control );
+
+        const gizmo = n.control.getHelper();
+        scene.add( gizmo );
 
         n.position = n.mesh.position;
 
@@ -368,20 +372,22 @@
 
     function autoMove () {
 
+
+
         if(!setting.auto) return;
 
-        targetTween = new TWEEN.Tween( goal ).to( {x:FIK.math.randInt(-50, 50), y:FIK.math.randInt(0, 50), z:current==='3D'? FIK.math.randInt(-50, 50):0}, 2000 )
-        .easing( TWEEN.Easing.Quadratic.Out )
+        targetTween = new Tween( goal ).to( {x:FIK.math.randInt(-50, 50), y:FIK.math.randInt(0, 50), z:current==='3D'? FIK.math.randInt(-50, 50):0}, 2000 )
+        .easing( Easing.Quadratic.Out )
         .onUpdate( function() { updateTarget(goal); updateSolver(); } )
         .onComplete( function() { autoMove(); } )
         .start();
 
     }
 
-    function render () {
+    function render (time) {
 
         requestAnimationFrame( render );
-        TWEEN.update();
+        if(targetTween)targetTween.update(time);
         renderer.render( scene, camera );
 
     }

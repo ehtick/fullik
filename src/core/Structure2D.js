@@ -260,7 +260,7 @@ export class Structure2D {
         let size = bone.length;
         let color = bone.color;
         //console.log(bone.color)
-        let g = new this.THREE.CylinderBufferGeometry ( 0.5, 1, size, 4 );
+        let g = new this.THREE.CylinderGeometry ( 0.5, 1, size, 4 );
         g.translate( 0, size*0.5, 0 );
 
         let m = new this.THREE.MeshStandardMaterial({ color:color, wireframe:false, shadowSide:this.THREE.DoubleSide });

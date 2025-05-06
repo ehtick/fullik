@@ -242,7 +242,7 @@ export class Structure3D {
         let s = 2, r = 2, a1, a2, axe;
         let size = bone.length;
         let color = bone.color;
-        let g = new this.THREE.CylinderBufferGeometry ( 1, 0.5, size, 4 );
+        let g = new this.THREE.CylinderGeometry ( 1, 0.5, size, 4 );
         g.rotateX( -Math.PI * 0.5 );
         g.translate( 0, 0, size*0.5 );
         //g.applyMatrix4( new this.THREE.Matrix4().makeRotationX( -Math.PI*0.5 ) )
@@ -264,7 +264,7 @@ export class Structure3D {
                 if(angle === Math.PI) break;
                 s = 2//size/4;
                 r = 2;//
-                extraGeo = new this.THREE.CylinderBufferGeometry ( 0, r, s, 6,1, true );
+                extraGeo = new this.THREE.CylinderGeometry ( 0, r, s, 6,1, true );
                 extraGeo.rotateX( -Math.PI * 0.5 );
                 extraGeo.translate(  0, 0, s*0.5 );
                 //extraGeo.applyMatrix4( new this.THREE.Matrix4().makeRotationX( -Math.PI*0.5 ) )
@@ -278,7 +278,7 @@ export class Structure3D {
             r = 2;
             //console.log('global', a1, a2)
             m2.color.setHex(0xFFFF00);
-            extraGeo = new this.THREE.CircleBufferGeometry( r, 12, a1, -a1+a2 );
+            extraGeo = new this.THREE.CircleGeometry( r, 12, a1, -a1+a2 );
 
             
             extraGeo.rotateX( -Math.PI * 0.5 );
@@ -297,7 +297,7 @@ export class Structure3D {
             r = 2;
             
             m2.color.setHex(0x00FFFF);
-            extraGeo = new this.THREE.CircleBufferGeometry( r, 12, a1, -a1+a2 );
+            extraGeo = new this.THREE.CircleGeometry( r, 12, a1, -a1+a2 );
             extraGeo.rotateX( -Math.PI * 0.5 )
 
            // extraGeo.applyMatrix4( new this.THREE.Matrix4().makeRotationX( -Math.PI*0.5 ) );

@@ -121,6 +121,10 @@ const math = {
 
 	},
 
+	nearEquals(a,b,tolerance){
+		return (Math.abs(a - b) <= tolerance) ? true : false;
+	},
+
 	// rotation
 
 	rotateXDegs: function ( v, angle ) { return v.clone().rotate( angle * math.toRad, 'X' ); },
@@ -659,7 +663,7 @@ class V3 {
 
 		return function projectOnPlane( planeNormal ) {
 
-			v1.copy( this ).projectOnVector( planeNormal.normalised() );
+			v1.copy( this ).normalised().projectOnVector( planeNormal.normalised() );
 
 			return this.min( v1 ).normalize();
 
@@ -766,9 +770,9 @@ class V3 {
 
 class M3 {
 
-    constructor() {
+    constructor(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
 
-		this.isMatrix3 = true;
+		M3.prototype.isMatrix3 = true;
 
 		this.elements = [
 
@@ -783,8 +787,23 @@ class M3 {
 			console.error( 'M3: the constructor no longer reads arguments. use .set() instead.' );
 
 		}
+		if ( n11 !== undefined ) {
+
+			this.set( n11, n12, n13, n21, n22, n23, n31, n32, n33 );
+
+		}
 
 	}
+
+	get XBasis(){ return new V3(this.elements[0], this.elements[1], this.elements[2]); }
+	set XBasis(v){this.elements[0] = v.x; this.elements[1] = v.y; this.elements[2] = v.z;}
+
+	get YBasis(){ return new V3(this.elements[3], this.elements[4], this.elements[5]); }
+	set YBasis(v){this.elements[3] = v.x; this.elements[4] = v.y; this.elements[5] = v.z;}
+
+	get ZBasis(){ return new V3(this.elements[6], this.elements[7], this.elements[8]); }
+	set ZBasis(v){this.elements[6] = v.x; this.elements[7] = v.y; this.elements[8] = v.z;}
+
 
 	set( n11, n12, n13, n21, n22, n23, n31, n32, n33 ) {
 
@@ -845,25 +864,6 @@ class M3 {
 	}
 
 	createRotationMatrix( referenceDirection ) {
-  
-	    /*let zAxis = referenceDirection;//normalised();
-	    let xAxis = new V3(1, 0, 0);
-	    let yAxis = new V3(0, 1, 0);
-	            
-	    // Handle the singularity (i.e. bone pointing along negative Z-Axis)...
-	    if( referenceDirection.z < -0.9999999 ){
-	        xAxis.set(1, 0, 0); // ...in which case positive X runs directly to the right...
-	        yAxis.set(0, 1, 0); // ...and positive Y runs directly upwards.
-	    } else {
-	        let a = 1/(1 + zAxis.z);
-	        let b = -zAxis.x * zAxis.y * a;           
-	        xAxis.set( 1 - zAxis.x * zAxis.x * a, b, -zAxis.x ).normalize();
-	        yAxis.set( b, 1 - zAxis.y * zAxis.y * a, -zAxis.y ).normalize();
-	    }
-
-	    return this.setV3( xAxis, yAxis, zAxis );
-
-	    */
 
 	    // NEW VERSION - 1.3.8
 
@@ -887,36 +887,265 @@ class M3 {
 
 	}
 
-	rotateAboutAxis( v, angle, rotationAxis ){
+	rotateDegs( axis, angleDegs ){
+		return this.rotateRads(axis, angleDegs * math.toRad);
+	}
 
-	    let sinTheta = Math.sin( angle );
-	    let cosTheta = Math.cos( angle );
-	    let oneMinusCosTheta = 1.0 - cosTheta;
+	rotateRads( axis, angle ){
+
+		const dest = new this.constructor();
+		let sin = Math.sin( angle );
+	    let cos = Math.cos( angle );
+	    let oneMinusCos = 1.0 - cos;
+
+	    let xy = axis.x * axis.y;
+		let yz = axis.y * axis.z;
+		let xz = axis.x * axis.z;
+		let xs = axis.x * sin;
+		let ys = axis.y * sin;
+		let zs = axis.z * sin;
+
+		let f00 = axis.x * axis.x * oneMinusCos + cos;
+		let f01 = xy * oneMinusCos + zs;
+		let f02 = xz * oneMinusCos - ys;
+
+		let f10 = xy * oneMinusCos - zs;
+		let f11 = axis.y * axis.y * oneMinusCos + cos;
+		let f12 = yz * oneMinusCos + xs;
+
+		let f20 = xz * oneMinusCos + ys;
+		let f21 = yz * oneMinusCos - xs;
+		let f22 = axis.z * axis.z * oneMinusCos + cos;
+
+		let m = this.elements;
+
+		let t00 = m[0] * f00 + m[3] * f01 + m[6] * f02;
+		let t01 = m[1] * f00 + m[4] * f01 + m[7] * f02;
+		let t02 = m[2] * f00 + m[5] * f01 + m[8] * f02;
+
+		let t10 = m[0] * f10 + m[3] * f11 + m[6] * f12;
+		let t11 = m[1] * f10 + m[4] * f11 + m[7] * f12;
+		let t12 = m[2] * f10 + m[5] * f11 + m[8] * f12;
+
+		let k = //dest.elements
+		// Construct and return rotation matrix
+		k[6] = m[0] * f20 + m[3] * f21 + m[6] * f22;
+		k[7] = m[1] * f20 + m[4] * f21 + m[7] * f22;
+		k[8] = m[2] * f20 + m[5] * f21 + m[8] * f22;
+
+		k[0] = t00;
+		k[1] = t01;
+		k[2] = t02;
+
+		k[3] = t10;
+		k[4] = t11;
+		k[5] = t12;
+
+		return dest;
+
+	}
+
+	rotateAboutAxis( v, angle, axis ){
+
+	    let sin = Math.sin( angle );
+	    let cos = Math.cos( angle );
+	    let oneMinuscos = 1.0 - cos;
 	    
 	    // It's quicker to pre-calc these and reuse than calculate x * y, then y * x later (same thing).
-	    let xyOne = rotationAxis.x * rotationAxis.y * oneMinusCosTheta;
-	    let xzOne = rotationAxis.x * rotationAxis.z * oneMinusCosTheta;
-	    let yzOne = rotationAxis.y * rotationAxis.z * oneMinusCosTheta;
+	    let xyOne = axis.x * axis.y * oneMinuscos;
+	    let xzOne = axis.x * axis.z * oneMinuscos;
+	    let yzOne = axis.y * axis.z * oneMinuscos;
 
 	    let te = this.elements;
 
 	    // Calculate rotated x-axis
-	    te[ 0 ] = rotationAxis.x * rotationAxis.x * oneMinusCosTheta + cosTheta;
-	    te[ 3 ] = xyOne + rotationAxis.z * sinTheta;
-	    te[ 6 ] = xzOne - rotationAxis.y * sinTheta;
+	    te[ 0 ] = axis.x * axis.x * oneMinuscos + cos;
+	    te[ 3 ] = xyOne + axis.z * sin;
+	    te[ 6 ] = xzOne - axis.y * sin;
 
 	    // Calculate rotated y-axis
-	    te[ 1 ] = xyOne - rotationAxis.z * sinTheta;
-	    te[ 4 ] = rotationAxis.y * rotationAxis.y * oneMinusCosTheta + cosTheta;
-	    te[ 7 ] = yzOne + rotationAxis.x * sinTheta;
+	    te[ 1 ] = xyOne - axis.z * sin;
+	    te[ 4 ] = axis.y * axis.y * oneMinuscos + cos;
+	    te[ 7 ] = yzOne + axis.x * sin;
 
 	    // Calculate rotated z-axis
-	    te[ 2 ] = xzOne + rotationAxis.y * sinTheta;
-	    te[ 5 ] = yzOne - rotationAxis.x * sinTheta;
-	    te[ 8 ] = rotationAxis.z * rotationAxis.z * oneMinusCosTheta + cosTheta;
+	    te[ 2 ] = xzOne + axis.y * sin;
+	    te[ 5 ] = yzOne - axis.x * sin;
+	    te[ 8 ] = axis.z * axis.z * oneMinuscos + cos;
+
+	   // this.identity()
+	    const mm = this;//.rotateRads(axis, angle);
 
 	    // Multiply the source by the rotation matrix we just created to perform the rotation
-	    return v.clone().applyM3( this );
+	    return v.clone().applyM3( mm );
+
+	}
+
+
+	///////
+
+	determinant() {
+
+		const te = this.elements;
+
+		const a = te[ 0 ], b = te[ 1 ], c = te[ 2 ],
+			d = te[ 3 ], e = te[ 4 ], f = te[ 5 ],
+			g = te[ 6 ], h = te[ 7 ], i = te[ 8 ];
+
+		return a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
+
+	}
+
+	invert() {
+
+		const te = this.elements,
+
+			n11 = te[ 0 ], n21 = te[ 1 ], n31 = te[ 2 ],
+			n12 = te[ 3 ], n22 = te[ 4 ], n32 = te[ 5 ],
+			n13 = te[ 6 ], n23 = te[ 7 ], n33 = te[ 8 ],
+
+			t11 = n33 * n22 - n32 * n23,
+			t12 = n32 * n13 - n33 * n12,
+			t13 = n23 * n12 - n22 * n13,
+
+			det = n11 * t11 + n21 * t12 + n31 * t13;
+
+		if ( det === 0 ) return this.set( 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+
+		const detInv = 1 / det;
+
+		te[ 0 ] = t11 * detInv;
+		te[ 1 ] = ( n31 * n23 - n33 * n21 ) * detInv;
+		te[ 2 ] = ( n32 * n21 - n31 * n22 ) * detInv;
+
+		te[ 3 ] = t12 * detInv;
+		te[ 4 ] = ( n33 * n11 - n31 * n13 ) * detInv;
+		te[ 5 ] = ( n31 * n12 - n32 * n11 ) * detInv;
+
+		te[ 6 ] = t13 * detInv;
+		te[ 7 ] = ( n21 * n13 - n23 * n11 ) * detInv;
+		te[ 8 ] = ( n22 * n11 - n21 * n12 ) * detInv;
+
+		return this;
+
+	}
+
+	multiplyMatrices( a, b ) {
+
+		const ae = a.elements;
+		const be = b.elements;
+		const te = this.elements;
+
+		const a11 = ae[ 0 ], a12 = ae[ 3 ], a13 = ae[ 6 ];
+		const a21 = ae[ 1 ], a22 = ae[ 4 ], a23 = ae[ 7 ];
+		const a31 = ae[ 2 ], a32 = ae[ 5 ], a33 = ae[ 8 ];
+
+		const b11 = be[ 0 ], b12 = be[ 3 ], b13 = be[ 6 ];
+		const b21 = be[ 1 ], b22 = be[ 4 ], b23 = be[ 7 ];
+		const b31 = be[ 2 ], b32 = be[ 5 ], b33 = be[ 8 ];
+
+		te[ 0 ] = a11 * b11 + a12 * b21 + a13 * b31;
+		te[ 3 ] = a11 * b12 + a12 * b22 + a13 * b32;
+		te[ 6 ] = a11 * b13 + a12 * b23 + a13 * b33;
+
+		te[ 1 ] = a21 * b11 + a22 * b21 + a23 * b31;
+		te[ 4 ] = a21 * b12 + a22 * b22 + a23 * b32;
+		te[ 7 ] = a21 * b13 + a22 * b23 + a23 * b33;
+
+		te[ 2 ] = a31 * b11 + a32 * b21 + a33 * b31;
+		te[ 5 ] = a31 * b12 + a32 * b22 + a33 * b32;
+		te[ 8 ] = a31 * b13 + a32 * b23 + a33 * b33;
+
+		return this;
+
+	}
+
+	premultiply( m ) {
+
+		return this.multiplyMatrices( m, this );
+
+	}
+
+	multiply( m ) {
+
+		return this.multiplyMatrices( this, m );
+
+	}
+
+	setFromMatrix4( m ) {
+
+		const me = m.elements;
+
+		this.set(
+
+			me[ 0 ], me[ 4 ], me[ 8 ],
+			me[ 1 ], me[ 5 ], me[ 9 ],
+			me[ 2 ], me[ 6 ], me[ 10 ]
+
+		);
+
+		return this;
+
+	}
+
+	copy( m ) {
+
+		const te = this.elements;
+		const me = m.elements;
+
+		te[ 0 ] = me[ 0 ]; te[ 1 ] = me[ 1 ]; te[ 2 ] = me[ 2 ];
+		te[ 3 ] = me[ 3 ]; te[ 4 ] = me[ 4 ]; te[ 5 ] = me[ 5 ];
+		te[ 6 ] = me[ 6 ]; te[ 7 ] = me[ 7 ]; te[ 8 ] = me[ 8 ];
+
+		return this;
+
+	}
+
+	fromArray( array, offset = 0 ) {
+
+		for ( let i = 0; i < 9; i ++ ) {
+
+			this.elements[ i ] = array[ i + offset ];
+
+		}
+
+		return this;
+
+	}
+
+	toArray( array = [], offset = 0 ) {
+
+		const te = this.elements;
+
+		array[ offset ] = te[ 0 ];
+		array[ offset + 1 ] = te[ 1 ];
+		array[ offset + 2 ] = te[ 2 ];
+
+		array[ offset + 3 ] = te[ 3 ];
+		array[ offset + 4 ] = te[ 4 ];
+		array[ offset + 5 ] = te[ 5 ];
+
+		array[ offset + 6 ] = te[ 6 ];
+		array[ offset + 7 ] = te[ 7 ];
+		array[ offset + 8 ] = te[ 8 ];
+
+		return array;
+
+	}
+
+	clone() {
+
+		return new this.constructor().fromArray( this.elements );
+
+	}
+
+	isOrthogonal(){
+
+		const xCrossYDot = this.XBasis.dot(this.YBasis);
+		const xCrossZDot = this.XBasis.dot(this.ZBasis);
+		const yCrossZDot = this.YBasis.dot(this.ZBasis);
+		if ( math.nearEquals(xCrossYDot, 0.0,  0.01) && math.nearEquals(xCrossZDot, 0.0,  0.01) && math.nearEquals(yCrossZDot, 0.0,  0.01) ) return true;
+		return false;
 
 	}
 
@@ -1105,6 +1334,8 @@ class Bone3D {
         this.joint = new Joint3D();
         this.start = new V3();
         this.end = new V3();
+
+        this.dir = new V3();
         
         this.boneConnectionPoint = END;
         this.length = 0;
@@ -1113,6 +1344,7 @@ class Bone3D {
         this.name = '';
 
         this.init( startLocation, endLocation, directionUV, length );
+        this.dir = this.getDirection();
 
     }
 
@@ -1127,6 +1359,8 @@ class Bone3D {
             this.setLength( length );
             this.setEndLocation( this.start.plus( directionUV.normalised().multiplyScalar( length ) ) );
         }
+
+        
 
     }
 
@@ -1180,6 +1414,12 @@ class Bone3D {
     setEndLocation( location ) {
 
         this.end.copy ( location );
+
+    }
+
+    getDirection() {
+
+        return this.end.clone().min( this.start ).normalize();
 
     }
 
@@ -2204,6 +2444,7 @@ class Structure3D {
                     bone = chain.bones[j];
                     mesh[j].position.copy( bone.start );
                     mesh[j].lookAt( bone.end );
+                    if(mesh[j].userData.extra) mesh[j].userData.extra.lookAt( bone.start.clone().add(bone.dir) );
                 }
 
             }
@@ -2337,7 +2578,7 @@ class Structure3D {
         let s = 2, r = 2, a1, a2, axe;
         let size = bone.length;
         let color = bone.color;
-        let g = new this.THREE.CylinderBufferGeometry ( 1, 0.5, size, 4 );
+        let g = new this.THREE.CylinderGeometry ( 1, 0.5, size, 4 );
         g.rotateX( -Math.PI * 0.5 );
         g.translate( 0, 0, size*0.5 );
         //g.applyMatrix4( new this.THREE.Matrix4().makeRotationX( -Math.PI*0.5 ) )
@@ -2359,7 +2600,7 @@ class Structure3D {
                 if(angle === Math.PI) break;
                 s = 2;//size/4;
                 r = 2;//
-                extraGeo = new this.THREE.CylinderBufferGeometry ( 0, r, s, 6,1, true );
+                extraGeo = new this.THREE.CylinderGeometry ( 0, r, s, 6,1, true );
                 extraGeo.rotateX( -Math.PI * 0.5 );
                 extraGeo.translate(  0, 0, s*0.5 );
                 //extraGeo.applyMatrix4( new this.THREE.Matrix4().makeRotationX( -Math.PI*0.5 ) )
@@ -2373,7 +2614,7 @@ class Structure3D {
             r = 2;
             //console.log('global', a1, a2)
             m2.color.setHex(0xFFFF00);
-            extraGeo = new this.THREE.CircleBufferGeometry( r, 12, a1, -a1+a2 );
+            extraGeo = new this.THREE.CircleGeometry( r, 12, a1, -a1+a2 );
 
             
             extraGeo.rotateX( -Math.PI * 0.5 );
@@ -2392,7 +2633,7 @@ class Structure3D {
             r = 2;
             
             m2.color.setHex(0x00FFFF);
-            extraGeo = new this.THREE.CircleBufferGeometry( r, 12, a1, -a1+a2 );
+            extraGeo = new this.THREE.CircleGeometry( r, 12, a1, -a1+a2 );
             extraGeo.rotateX( -Math.PI * 0.5 );
 
            // extraGeo.applyMatrix4( new this.THREE.Matrix4().makeRotationX( -Math.PI*0.5 ) );
@@ -2408,11 +2649,12 @@ class Structure3D {
             break;
         }
 
-        axe = new this.THREE.AxesHelper(1.5);
+        const axis = new this.THREE.AxesHelper(2);
         //let bw = new this.THREE.Mesh( g,  m4 );
 
         let b = new this.THREE.Mesh( g,  m );
-        b.add(axe);
+
+        b.add(axis);
         //b.add(bw);
         this.scene.add( b );
 
@@ -2426,11 +2668,22 @@ class Structure3D {
                     ar[prev].add( extraMesh );
                 } else {
                     b.add( extraMesh );
+                    b.userData.extra = extraMesh;
+                    b.userData.axe = axe;
+                    //extraMesh.position=(b.position)
+                    //this.scene.add( extraMesh )
                 }
                 
             }
         } else {
-             if( extraMesh !== null ) b.add( extraMesh );
+             if( extraMesh !== null ){ 
+
+                b.add( extraMesh );
+                b.userData.extra = extraMesh;
+                b.userData.axe =new this.THREE.Vector3(0,0,1);
+                //extraMesh.position=(b.position)
+                //this.scene.add( extraMesh )
+            }
         }
        
         return b;
@@ -3590,7 +3843,7 @@ class Structure2D {
         let size = bone.length;
         let color = bone.color;
         //console.log(bone.color)
-        let g = new this.THREE.CylinderBufferGeometry ( 0.5, 1, size, 4 );
+        let g = new this.THREE.CylinderGeometry ( 0.5, 1, size, 4 );
         g.translate( 0, size*0.5, 0 );
 
         let m = new this.THREE.MeshStandardMaterial({ color:color, wireframe:false, shadowSide:this.THREE.DoubleSide });

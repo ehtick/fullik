@@ -108,6 +108,7 @@ export class Structure3D {
                     bone = chain.bones[j];
                     mesh[j].position.copy( bone.start );
                     mesh[j].lookAt( bone.end );
+                    if(mesh[j].userData.extra) mesh[j].userData.extra.lookAt( bone.start.clone().add(bone.dir) );
                 }
 
             }
@@ -313,11 +314,12 @@ export class Structure3D {
             break;
         }
 
-        axe = new this.THREE.AxesHelper(1.5);
+        const axis = new this.THREE.AxesHelper(2);
         //let bw = new this.THREE.Mesh( g,  m4 );
 
         let b = new this.THREE.Mesh( g,  m );
-        b.add(axe);
+
+        b.add(axis);
         //b.add(bw);
         this.scene.add( b );
 
@@ -331,11 +333,22 @@ export class Structure3D {
                     ar[prev].add( extraMesh );
                 } else {
                     b.add( extraMesh );
+                    b.userData.extra = extraMesh;
+                    b.userData.axe = axe;
+                    //extraMesh.position=(b.position)
+                    //this.scene.add( extraMesh )
                 }
                 
             }
         } else {
-             if( extraMesh !== null ) b.add( extraMesh );
+             if( extraMesh !== null ){ 
+
+                b.add( extraMesh );
+                b.userData.extra = extraMesh;
+                b.userData.axe =new this.THREE.Vector3(0,0,1);
+                //extraMesh.position=(b.position)
+                //this.scene.add( extraMesh )
+            }
         }
        
         return b;

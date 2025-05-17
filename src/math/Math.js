@@ -107,6 +107,10 @@ export const math = {
 
 	},
 
+	nearEquals(a,b,tolerance){
+		return (Math.abs(a - b) <= tolerance) ? true : false;
+	},
+
 	// rotation
 
 	rotateXDegs: function ( v, angle ) { return v.clone().rotate( angle * math.toRad, 'X' ); },

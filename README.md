@@ -23,7 +23,7 @@ const scene = new THREE.Scene();
 const solver = Structure3D(scene);
 
 const n = {
-     mesh : new THREE.Mesh( new THREE.SphereBufferGeometry( 0.1, 6, 4 ),  new THREE.MeshStandardMaterial({color:0xFFFF00, wireframe:true }) ),
+     mesh : new THREE.Mesh( new THREE.SphereGeometry( 0.1, 6, 4 ),  new THREE.MeshStandardMaterial({color:0xFFFF00, wireframe:true }) ),
     control : new THREE.TransformControls( camera, renderer.domElement ),
 }
 

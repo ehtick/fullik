@@ -12,6 +12,8 @@ export class Bone3D {
         this.joint = new Joint3D();
         this.start = new V3();
         this.end = new V3();
+
+        this.dir = new V3();
         
         this.boneConnectionPoint = END;
         this.length = 0;
@@ -20,6 +22,7 @@ export class Bone3D {
         this.name = '';
 
         this.init( startLocation, endLocation, directionUV, length );
+        this.dir = this.getDirection()
 
     }
 
@@ -34,6 +37,8 @@ export class Bone3D {
             this.setLength( length );
             this.setEndLocation( this.start.plus( directionUV.normalised().multiplyScalar( length ) ) );
         }
+
+        
 
     }
 
@@ -87,6 +92,12 @@ export class Bone3D {
     setEndLocation( location ) {
 
         this.end.copy ( location );
+
+    }
+
+    getDirection() {
+
+        return this.end.clone().min( this.start ).normalize();
 
     }
 

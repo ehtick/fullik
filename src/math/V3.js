@@ -257,7 +257,7 @@ export class V3 {
 
 		return function projectOnPlane( planeNormal ) {
 
-			v1.copy( this ).projectOnVector( planeNormal.normalised() );
+			v1.copy( this ).normalised().projectOnVector( planeNormal.normalised() );
 
 			return this.min( v1 ).normalize();
 
